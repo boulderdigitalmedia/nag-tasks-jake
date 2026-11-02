@@ -1,0 +1,297 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Nag</title>
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="apple-touch-icon" href="/icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Nag">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#F6F4F0" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#16140F" media="(prefers-color-scheme: dark)">
+<style>
+:root{
+  --bg:#F6F4F0;--card:#FFFFFF;--ink:#1B1915;--muted:#77716A;--line:#E6E1D9;
+  --accent:#E8502E;--accent-ink:#fff;--ok:#2F8F5B;--warn:#C2410C;--warn-bg:#FDEBE3;--soft:#EFEBE4;
+}
+@media (prefers-color-scheme: dark){:root{
+  --bg:#16140F;--card:#211E18;--ink:#F3EFE7;--muted:#A39C90;--line:#332F27;
+  --accent:#F06A4A;--ok:#5CC38A;--warn:#FB8A5B;--warn-bg:#3A2117;--soft:#2A2620;
+}}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.4 -apple-system,BlinkMacSystemFont,"SF Pro Text",system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+body{padding:env(safe-area-inset-top) 16px calc(24px + env(safe-area-inset-bottom))}
+main{max-width:560px;margin:0 auto}
+h1{font-size:30px;letter-spacing:-.02em;margin:18px 0 2px}
+.sub{color:var(--muted);margin:0 0 18px;font-size:14px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;margin-bottom:14px}
+.banner{border-radius:14px;padding:12px 14px;margin-bottom:14px;font-size:14px;background:var(--soft)}
+.banner.warn{background:var(--warn-bg);color:var(--warn)}
+.banner b{display:block;margin-bottom:2px}
+label{display:block;font-size:13px;color:var(--muted);margin:0 0 6px;font-weight:600}
+input{width:100%;font:inherit;font-size:17px;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:11px 12px;-webkit-appearance:none;appearance:none;min-height:46px}
+input:focus{outline:2px solid var(--accent);outline-offset:-1px}
+.row{display:flex;gap:10px}.row>div{flex:1;min-width:0}
+.field{margin-bottom:12px}
+button{font:inherit;font-weight:600;border:0;border-radius:12px;padding:12px 16px;cursor:pointer;min-height:46px}
+.primary{background:var(--accent);color:var(--accent-ink);width:100%;font-size:17px}
+.primary:disabled{opacity:.45}
+.ghost{background:var(--soft);color:var(--ink)}
+.slots{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--muted);margin:-2px 0 12px}
+.dot{width:10px;height:10px;border-radius:50%;background:var(--line)}
+.dot.on{background:var(--accent)}
+.err{color:var(--warn);font-size:14px;margin:8px 0 0;min-height:1em}
+.group{margin:22px 0 8px;display:flex;justify-content:space-between;align-items:baseline}
+.group h2{font-size:15px;margin:0;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+.group.overdue h2{color:var(--warn)}
+.group span{font-size:13px;color:var(--muted)}
+.task{display:flex;gap:12px;align-items:flex-start;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:8px}
+.task.over{border-color:var(--warn)}
+.chk{flex:none;width:28px;height:28px;border-radius:50%;border:2px solid var(--muted);background:transparent;padding:0;min-height:0;display:grid;place-items:center}
+.task.done .chk{background:var(--ok);border-color:var(--ok)}
+.chk svg{width:16px;height:16px;stroke:#fff;stroke-width:3;fill:none;opacity:0}
+.task.done .chk svg{opacity:1}
+.tbody{flex:1;min-width:0}
+.ttl{font-size:17px;word-wrap:break-word}
+.task.done .ttl{text-decoration:line-through;color:var(--muted)}
+.meta{font-size:13px;color:var(--muted);margin-top:2px}
+.task.over .meta{color:var(--warn)}
+.acts{display:flex;gap:4px}
+.icon{background:transparent;color:var(--muted);padding:6px;min-height:0;border-radius:8px;font-size:13px}
+.empty{color:var(--muted);font-size:14px;padding:8px 2px}
+.foot{display:flex;gap:8px;flex-wrap:wrap;margin-top:24px}
+.foot button{flex:1;font-size:14px}
+.hidden{display:none!important}
+dialog{border:0;border-radius:16px;background:var(--card);color:var(--ink);padding:18px;width:min(92vw,420px)}
+dialog::backdrop{background:rgba(0,0,0,.4)}
+</style>
+</head>
+<body>
+<main>
+  <!-- Passcode -->
+  <section id="lock" class="hidden">
+    <h1>Nag</h1>
+    <p class="sub">Enter your passcode to unlock.</p>
+    <div class="card">
+      <form id="lockForm">
+        <div class="field"><label for="pass">Passcode</label>
+          <input id="pass" autocomplete="current-password" autocapitalize="off" spellcheck="false"></div>
+        <button class="primary" type="submit">Unlock</button>
+        <p class="err" id="lockErr"></p>
+      </form>
+    </div>
+  </section>
+
+  <!-- App -->
+  <section id="app" class="hidden">
+    <h1>Nag</h1>
+    <p class="sub">Max 3 tasks a day. Hourly nags until they're done.</p>
+
+    <div id="installBanner" class="banner warn hidden">
+      <b>Add this to your Home Screen first</b>
+      iPhone only sends web notifications to installed apps. In Safari tap <b style="display:inline">Share</b> → <b style="display:inline">Add to Home Screen</b>, then open Nag from the Home Screen icon.
+    </div>
+    <div id="notifBanner" class="banner hidden">
+      <b>Notifications are off</b>
+      <span id="notifText">Turn them on so Nag can nag.</span>
+      <div style="margin-top:10px"><button class="ghost" id="enableBtn" type="button">Enable notifications</button></div>
+    </div>
+
+    <div class="card">
+      <form id="addForm">
+        <div class="field"><label for="title">Task</label>
+          <input id="title" maxlength="200" placeholder="e.g. Book the WOF" required></div>
+        <div class="row">
+          <div class="field"><label for="date">Due</label><input id="date" type="date" required></div>
+          <div class="field"><label for="time">Start nagging at</label><input id="time" type="time" required></div>
+        </div>
+        <div class="slots" id="slots"></div>
+        <button class="primary" id="addBtn" type="submit">Add task</button>
+        <p class="err" id="addErr"></p>
+      </form>
+    </div>
+
+    <div id="list"></div>
+
+    <div class="foot">
+      <button class="ghost" id="testBtn" type="button">Send test nag</button>
+      <button class="ghost" id="lockBtn" type="button">Lock</button>
+    </div>
+    <p class="sub" id="devInfo" style="margin-top:10px"></p>
+  </section>
+</main>
+
+<dialog id="moveDlg">
+  <form method="dialog" id="moveForm">
+    <label for="mvTitle">Task</label>
+    <div class="field"><input id="mvTitle" maxlength="200" required></div>
+    <div class="row">
+      <div class="field"><label for="mvDate">Due</label><input id="mvDate" type="date" required></div>
+      <div class="field"><label for="mvTime">Start at</label><input id="mvTime" type="time" required></div>
+    </div>
+    <p class="err" id="mvErr"></p>
+    <div class="row"><button class="ghost" value="cancel" formnovalidate>Cancel</button><button class="primary" id="mvSave" value="save">Save</button></div>
+  </form>
+</dialog>
+
+<script>
+const API = "https://koyjejvnkvapotvkmktb.supabase.co/functions/v1/api";
+const $ = (id) => document.getElementById(id);
+const store = {
+  get(k){ try { return localStorage.getItem(k); } catch { return null; } },
+  set(k,v){ try { localStorage.setItem(k,v); } catch {} },
+  del(k){ try { localStorage.removeItem(k); } catch {} },
+};
+let key = store.get("nag_key");
+let state = { tasks: [], today: "", devices: 0, vapid: "" };
+let editing = null;
+
+async function api(action, data = {}) {
+  const r = await fetch(API, { method: "POST", headers: { "Content-Type": "application/json", "x-app-key": key || "" },
+    body: JSON.stringify({ action, ...data }) });
+  const j = await r.json().catch(() => ({ error: "Network error" }));
+  if (r.status === 401) { lock("Wrong passcode."); throw new Error("locked"); }
+  if (!r.ok) throw new Error(j.error || "Something went wrong");
+  return j;
+}
+
+function lock(msg = "") { store.del("nag_key"); key = null; $("app").classList.add("hidden"); $("lock").classList.remove("hidden"); $("lockErr").textContent = msg; }
+$("lockBtn").onclick = () => lock();
+$("lockForm").onsubmit = async (e) => {
+  e.preventDefault(); key = $("pass").value.trim();
+  try { await load(); store.set("nag_key", key); $("lock").classList.add("hidden"); $("app").classList.remove("hidden"); refreshNotifUI(); }
+  catch (err) { if (err.message !== "locked") $("lockErr").textContent = err.message; }
+};
+
+const fmtDay = (d) => new Date(d + "T12:00:00").toLocaleDateString("en-NZ", { weekday: "short", day: "numeric", month: "short" });
+const fmtTime = (t) => { const [h, m] = t.split(":").map(Number); const ap = h >= 12 ? "pm" : "am"; return `${(h % 12) || 12}${m ? ":" + String(m).padStart(2, "0") : ""}${ap}`; };
+const addDays = (d, n) => { const x = new Date(d + "T12:00:00"); x.setDate(x.getDate() + n); return x.toLocaleDateString("en-CA"); };
+const esc = (s) => s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const countOn = (d, exceptId) => state.tasks.filter((t) => t.due_date === d && t.id !== exceptId).length;
+
+async function load() {
+  state = await api("list");
+  if (!$("date").value) $("date").value = state.today;
+  if (!$("time").value) { const h = Math.min(new Date().getHours() + 1, 23); $("time").value = String(h).padStart(2, "0") + ":00"; }
+  render();
+}
+
+function render() {
+  const groups = new Map();
+  for (const t of state.tasks) { if (!groups.has(t.due_date)) groups.set(t.due_date, []); groups.get(t.due_date).push(t); }
+  const overdue = state.tasks.filter((t) => t.due_date < state.today && !t.done);
+  let html = "";
+  if (overdue.length) html += section("Overdue", "overdue", overdue, `${overdue.length} not done`);
+  const days = [...groups.keys()].filter((d) => d >= state.today).sort();
+  if (!days.includes(state.today)) days.unshift(state.today);
+  for (const d of days) {
+    const list = groups.get(d) || [];
+    const label = d === state.today ? "Today" : d === addDays(state.today, 1) ? "Tomorrow" : fmtDay(d);
+    html += section(label, "", list, `${list.length}/3`);
+  }
+  $("list").innerHTML = html;
+  updateSlots();
+  $("devInfo").textContent = state.devices ? `${state.devices} device${state.devices > 1 ? "s" : ""} receiving nags.` : "No devices are receiving nags yet.";
+}
+
+function section(label, cls, list, right) {
+  const items = list.length ? list.map(taskHtml).join("") : `<div class="empty">Nothing yet.</div>`;
+  return `<div class="group ${cls}"><h2>${label}</h2><span>${right}</span></div>${items}`;
+}
+
+function taskHtml(t) {
+  const over = !t.done && t.due_date < state.today;
+  let meta = over ? `Overdue since ${fmtDay(t.due_date)} · nagging hourly` : `Nags hourly from ${fmtTime(t.start_time.slice(0, 5))}`;
+  if (t.done) meta = "Done";
+  else if (t.nag_count) meta += ` · nagged ${t.nag_count}×`;
+  return `<div class="task ${t.done ? "done" : ""} ${over ? "over" : ""}" data-id="${t.id}">
+    <button class="chk" data-act="${t.done ? "undo" : "done"}" aria-label="${t.done ? "Mark not done" : "Mark done"}"><svg viewBox="0 0 24 24"><path d="M5 12l5 5 9-10"/></svg></button>
+    <div class="tbody"><div class="ttl">${esc(t.title)}</div><div class="meta">${meta}</div></div>
+    <div class="acts">${t.done ? "" : `<button class="icon" data-act="edit">Edit</button>`}<button class="icon" data-act="delete">Delete</button></div>
+  </div>`;
+}
+
+function updateSlots() {
+  const d = $("date").value || state.today, n = countOn(d);
+  $("slots").innerHTML = [0, 1, 2].map((i) => `<i class="dot ${i < n ? "on" : ""}"></i>`).join("") +
+    `<span>${n >= 3 ? `${fmtDay(d)} is full` : `${3 - n} slot${3 - n === 1 ? "" : "s"} left on ${d === state.today ? "today" : fmtDay(d)}`}</span>`;
+  $("addBtn").disabled = n >= 3;
+}
+$("date").oninput = updateSlots;
+
+$("addForm").onsubmit = async (e) => {
+  e.preventDefault(); $("addErr").textContent = "";
+  const title = $("title").value.trim(); if (!title) return;
+  $("addBtn").disabled = true;
+  try { await api("add", { title, due_date: $("date").value, start_time: $("time").value }); $("title").value = ""; await load(); }
+  catch (err) { if (err.message !== "locked") $("addErr").textContent = err.message; updateSlots(); }
+};
+
+$("list").onclick = async (e) => {
+  const b = e.target.closest("button[data-act]"); if (!b) return;
+  const id = b.closest(".task").dataset.id, act = b.dataset.act, t = state.tasks.find((x) => x.id === id);
+  if (act === "edit") { editing = t; $("mvTitle").value = t.title; $("mvDate").value = t.due_date; $("mvTime").value = t.start_time.slice(0, 5); $("mvErr").textContent = ""; $("moveDlg").showModal(); return; }
+  if (act === "delete" && !confirmDelete(t)) return;
+  try { await api(act, { id }); await load(); } catch (err) { if (err.message !== "locked") $("addErr").textContent = err.message; }
+};
+function confirmDelete(t) { return window.confirm(`Delete "${t.title}"?`); }
+
+$("mvSave").onclick = async (e) => {
+  e.preventDefault();
+  try { await api("update", { id: editing.id, title: $("mvTitle").value.trim(), due_date: $("mvDate").value, start_time: $("mvTime").value }); $("moveDlg").close(); await load(); }
+  catch (err) { if (err.message !== "locked") $("mvErr").textContent = err.message; }
+};
+
+// ---- Notifications ----
+const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+const standalone = window.matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
+const pushOK = "serviceWorker" in navigator && "PushManager" in window && "Notification" in window;
+
+function b64ToU8(s) { const p = "=".repeat((4 - (s.length % 4)) % 4); const b = atob((s + p).replace(/-/g, "+").replace(/_/g, "/")); return Uint8Array.from(b, (c) => c.charCodeAt(0)); }
+
+async function refreshNotifUI() {
+  if (isIOS && !standalone) { $("installBanner").classList.remove("hidden"); $("notifBanner").classList.add("hidden"); return; }
+  $("installBanner").classList.add("hidden");
+  if (!pushOK) { $("notifBanner").classList.remove("hidden"); $("notifText").textContent = "This browser can't receive push notifications."; $("enableBtn").classList.add("hidden"); return; }
+  const reg = await navigator.serviceWorker.ready;
+  const sub = await reg.pushManager.getSubscription();
+  if (Notification.permission === "granted" && sub) {
+    $("notifBanner").classList.add("hidden");
+    api("subscribe", { subscription: sub.toJSON() }).catch(() => {}); // keep server copy fresh
+  } else {
+    $("notifBanner").classList.remove("hidden");
+    $("notifText").textContent = Notification.permission === "denied" ? "Blocked. Turn them on in Settings → Notifications → Nag." : "Turn them on so Nag can nag.";
+  }
+}
+
+$("enableBtn").onclick = async () => {
+  try {
+    const perm = await Notification.requestPermission();
+    if (perm !== "granted") return refreshNotifUI();
+    const reg = await navigator.serviceWorker.ready;
+    const sub = (await reg.pushManager.getSubscription()) || await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64ToU8(state.vapid) });
+    await api("subscribe", { subscription: sub.toJSON() });
+    await load(); refreshNotifUI();
+  } catch (err) { $("notifText").textContent = "Couldn't enable: " + err.message; }
+};
+
+$("testBtn").onclick = async () => {
+  try { const r = await api("test_push"); $("testBtn").textContent = r.sent ? "Test sent ✓" : "No devices subscribed"; }
+  catch (err) { $("testBtn").textContent = "Failed"; }
+  setTimeout(() => ($("testBtn").textContent = "Send test nag"), 3000);
+};
+
+document.addEventListener("visibilitychange", () => { if (!document.hidden && key) load().catch(() => {}); });
+
+(async () => {
+  if ("serviceWorker" in navigator) navigator.serviceWorker.register("/sw.js").catch(() => {});
+  if (!key) return lock();
+  try { await load(); $("app").classList.remove("hidden"); refreshNotifUI(); }
+  catch (err) { if (err.message !== "locked") { $("app").classList.remove("hidden"); $("addErr").textContent = err.message; } }
+})();
+</script>
+</body>
+</html>
